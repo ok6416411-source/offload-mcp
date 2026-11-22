@@ -16,7 +16,20 @@
 
 Without it, Claude reads a 100k-token file into its context. With it, a free model reads the file and Claude gets a ~500-token answer. Your Claude usage goes to *thinking*, not to *reading*.
 
-## Setup (≈ 5 minutes)
+## ⚡ Quick setup (1 command)
+
+Requires [Node.js](https://nodejs.org). Open a terminal (Windows: `cmd`) and run:
+
+```bash
+npx -y github:ok6416411-source/offload-mcp setup
+```
+
+A window opens in your browser → paste your free API keys → **Save**. Restart Claude Desktop. Done.
+(Claude Code is configured automatically too, if installed.)
+
+Or just tell Claude Code: *"Run `npx -y github:ok6416411-source/offload-mcp setup` for me."*
+
+## Manual setup
 
 ### 1. Get at least one free API key
 | Provider | Get a key | Good at |

@@ -2,7 +2,20 @@
 
 **Mehr aus deinem Claude-Limit holen.** Claude gibt Routinearbeit an kostenlose KI-Anbieter ab (Groq, Gemini, Cerebras, Mistral, NVIDIA, OpenRouter) und liest nur noch die kurze Antwort. Dadurch verbraucht Claude deutlich weniger Tokens.
 
-## Einrichtung (ca. 5 Minuten)
+## ⚡ Schnelleinrichtung (1 Befehl)
+
+Voraussetzung: [Node.js](https://nodejs.org) (LTS). Dann ein Terminal öffnen (Windows: `Win + R` → `cmd` → Enter) und eingeben:
+
+```bash
+npx -y github:ok6416411-source/offload-mcp setup
+```
+
+Im Browser öffnet sich ein Fenster → kostenlose API-Keys einfügen → **Speichern**. Claude Desktop komplett beenden und neu starten. Fertig!
+(Claude Code wird automatisch mit eingerichtet, falls installiert.)
+
+Oder sag einfach Claude Code: *„Führ `npx -y github:ok6416411-source/offload-mcp setup` für mich aus.“*
+
+## Manuelle Einrichtung
 
 ### 1. Node.js installieren
 Falls noch nicht vorhanden: https://nodejs.org (LTS-Version).

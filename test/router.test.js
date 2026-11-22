@@ -28,3 +28,11 @@ test("falls back to the next provider on 429", async () => {
 test("clear error without keys", async () => {
   await assert.rejects(complete({ prompt: "x" }, { env: {} }), /No provider configured/);
 });
+
+test("setup keeps other MCP servers when adding offload", async () => {
+  const { mergeConfig } = await import("../src/setup.js");
+  const out = mergeConfig({ theme: "dark", mcpServers: { other: { command: "x" } } }, { GEMINI_API_KEY: "k" });
+  assert.equal(out.mcpServers.other.command, "x");
+  assert.equal(out.theme, "dark");
+  assert.deepEqual(out.mcpServers.offload.env, { GEMINI_API_KEY: "k" });
+});
