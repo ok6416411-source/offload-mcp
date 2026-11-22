@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offload Cloud</title>
+<style>
+:root{--bg:#121212;--card:#1c1c1c;--line:#2c2c2c;--text:#eee;--muted:#9a9a9a;--accent:#d97757;--ok:#3fa66b;--err:#d9534f}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--text)}
+main{max-width:860px;margin:0 auto;padding:32px 16px 80px}
+h1{margin:0;font-size:28px}h2{font-size:18px;margin:0 0 12px}.muted{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin:18px 0}
+input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:#141414;color:var(--text);font:inherit}
+textarea{min-height:90px;resize:vertical}
+button{padding:9px 16px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:600 14px system-ui;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}button.danger{background:var(--err)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.row>button{flex:0 0 auto}
+.prov{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.prov:last-child{border:0}.badge{font-size:12px;padding:2px 8px;border-radius:99px;background:#1d3b25;color:#8fe0aa}
+.key{border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0}
+.key.revoked{opacity:.5}code,pre{background:#0d0d0d;border-radius:6px;padding:2px 6px;font:13px ui-monospace,monospace}
+pre{padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.secret{background:#2a2010;border:1px solid var(--accent);border-radius:10px;padding:14px;margin:10px 0}
+label.chk{display:inline-flex;gap:6px;align-items:center;margin:4px 12px 4px 0}label.chk input{width:auto}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;padding:10px 18px;border-radius:8px;display:none}
+.hidden{display:none}.stat{font-size:26px;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+  <div class="row" style="align-items:flex-end">
+    <div><h1>☁️ Offload Cloud</h1><div class="muted" data-i18n="tag">Deine eigenen Gratis-API-Keys, verschlüsselt an einem Ort – nutzbar über eigene Offload-Keys.</div></div>
+    <button id="logout" class="ghost hidden" data-i18n="logout">Abmelden</button>
+  </div>
+
+  <!-- Login -->
+  <section id="auth" class="card hidden">
+    <h2 data-i18n="login">Anmelden oder registrieren</h2>
+    <div class="row"><input id="email" type="email" placeholder="E-Mail"><input id="pw" type="password" placeholder="Passwort (min. 8 Zeichen)"></div>
+    <div class="row" style="margin-top:10px"><button id="signin" data-i18n="signin">Anmelden</button><button id="signup" class="ghost" data-i18n="signup">Konto erstellen</button></div>
+  </section>
+
+  <div id="app" class="hidden">
+    <section class="card">
+      <div class="row"><div><div class="muted" data-i18n="calls">Anfragen über die Cloud</div><div class="stat" id="statCalls">0</div></div>
+      <div><div class="muted" data-i18n="tokens">Verarbeitete Tokens (geschätzt)</div><div class="stat" id="statTokens">0</div></div></div>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="step1">1 · Deine Anbieter-Keys</h2>
+      <p class="muted" data-i18n="step1d">Werden beim Speichern geprüft, mit AES-256-GCM verschlüsselt und danach nie wieder angezeigt. Nur du kannst sie über deine Offload-Keys nutzen.</p>
+      <div id="providers"></div>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="step2">2 · Offload-Keys erstellen</h2>
+      <p class="muted" data-i18n="step2d">Ein Offload-Key bündelt deine Anbieter. Erstelle z. B. einen pro Gerät oder App – du kannst jeden einzeln sperren. Offload schreibt deinen Apps nichts vor: Rolle und Systemanweisung bestimmt allein dein Programm.</p>
+      <div class="row"><input id="newName" placeholder="Name, z. B. Laptop oder Meine Website"></div>
+      <div id="newProviders" style="margin:8px 0"></div>
+      <textarea id="newDocs" placeholder="Eigene Doku/Notizen zu diesem Key (optional, nur für dich – wird nie an die KI geschickt)"></textarea>
+      <div style="margin-top:10px"><button id="create" data-i18n="create">Offload-Key erstellen</button></div>
+      <div id="secret"></div>
+      <div id="keys"></div>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="step3">3 · Benutzen</h2>
+      <p><b>Claude Desktop / Claude Code</b> <span class="muted" data-i18n="mcp">– in der offload-mcp-Konfiguration statt der einzelnen Keys:</span></p>
+      <pre id="cfgMcp"></pre>
+      <p><b data-i18n="own">Eigene App / Website</b> <span class="muted" data-i18n="ownd">– OpenAI-kompatibel. Key nur serverseitig verwenden, nie im Browser-Code!</span></p>
+      <pre id="cfgApi"></pre>
+      <p class="muted" data-i18n="models"><code>model</code>: <code>auto</code> (alle Anbieter mit Ausweich-Logik), <code>groq</code> (nur Groq) oder <code>groq:&lt;modell&gt;</code> (genaues Modell).</p>
+    </section>
+  </div>
+  <p class="muted" style="text-align:center;font-size:13px">⭐ <a style="color:var(--accent)" href="https://github.com/ok6416411-source/offload-mcp" target="_blank">offload-mcp auf GitHub</a></p>
+</main>
+<div id="toast"></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPABASE_URL = "https://hwxrfawfnyigtsheemol.supabase.co";
+const SUPABASE_KEY = "sb_publishable_92avkPY-0VHyYGv6ZIpynw_9k8wWBbq";
+const API = `${SUPABASE_URL}/functions/v1/offload-cloud`;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// --- i18n: German if browser is German, else English ---
+const de = (navigator.language || "en").toLowerCase().startsWith("de");
+const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model)."};
+const T = (k, deText) => de ? deText : (EN[k] ?? deText);
+if (!de) {
+  document.documentElement.lang = "en";
+  document.querySelectorAll("[data-i18n]").forEach((e) => { if (EN[e.dataset.i18n]) e.textContent = EN[e.dataset.i18n]; });
+  $("newName").placeholder = "Name, e.g. Laptop or My website";
+  $("newDocs").placeholder = "Your own docs/notes for this key (optional, just for you – never sent to the AI)";
+  $("pw").placeholder = "Password (min. 8 characters)";
+}
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.style.display = "block"; setTimeout(() => (t.style.display = "none"), 3000); }
+
+async function call(path, opts = {}) {
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(`${API}/api/${path}`, { ...opts, headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.status);
+  return data;
+}
+
+let state;
+async function load() {
+  state = await call("state");
+  $("statCalls").textContent = state.usage.calls.toLocaleString();
+  $("statTokens").textContent = state.usage.tokens.toLocaleString();
+  $("providers").innerHTML = state.providers.map((p) => `
+    <div class="prov"><div><b>${esc(p.name)}</b><br><a style="color:var(--accent);font-size:13px" href="${esc(p.signup)}" target="_blank">${T("get", "Key holen")} ↗</a></div>
+      <input type="password" data-p="${p.id}" placeholder="${p.saved ? `•••• ${esc(p.hint)} ${T("saved2", "gespeichert")}` : T("paste", "API-Key einfügen")}">
+      <div class="row" style="gap:6px">${p.saved ? `<span class="badge">✓</span><button class="ghost" data-del="${p.id}">✕</button>` : ""}<button data-save="${p.id}">${T("save", "Speichern")}</button></div></div>`).join("");
+  const saved = state.providers.filter((p) => p.saved);
+  $("newProviders").innerHTML = saved.length
+    ? `<span class="muted">${T("use", "Nutzt:")}</span> ` + saved.map((p) => `<label class="chk"><input type="checkbox" value="${p.id}" checked>${esc(p.name)}</label>`).join("")
+    : `<span class="muted">${T("noprov", "Speichere zuerst mindestens einen Anbieter-Key.")}</span>`;
+  $("keys").innerHTML = state.accessKeys.map((k) => `
+    <div class="key ${k.revoked ? "revoked" : ""}">
+      <div class="row"><div><b>${esc(k.name)}</b> <code>${esc(k.prefix)}…</code>${k.revoked ? ` <span class="muted">(${T("revoked", "gesperrt")})</span>` : ""}<br>
+        <span class="muted" style="font-size:13px">${k.providers.length ? esc(k.providers.join(", ")) : T("all", "alle Anbieter")} · ${k.usage.calls} ${T("req", "Anfragen")} · ~${k.usage.tokens.toLocaleString()} Tokens${k.last_used_at ? ` · ${T("last", "zuletzt")} ${new Date(k.last_used_at).toLocaleString()}` : ""}</span></div>
+        <button class="ghost" data-toggle="${k.id}" data-rev="${k.revoked}">${k.revoked ? T("unrevoke", "Entsperren") : T("revoke", "Sperren")}</button>
+        <button class="danger" data-delkey="${k.id}">${T("delete", "Löschen")}</button></div>
+      <textarea data-docs="${k.id}" style="margin-top:8px;min-height:60px" placeholder="${T("docs", "Eigene Doku zu diesem Key")}">${esc(k.docs)}</textarea>
+      <button class="ghost" data-savedocs="${k.id}" style="margin-top:6px">${T("savedocs", "Doku speichern")}</button>
+    </div>`).join("");
+  renderSnippets("ofk_…");
+}
+
+function renderSnippets(key) {
+  $("cfgMcp").textContent = JSON.stringify({ mcpServers: { offload: { command: "npx", args: ["-y", "github:ok6416411-source/offload-mcp"], env: { OFFLOAD_CLOUD_KEY: key } } } }, null, 2);
+  $("cfgApi").textContent = `Base URL: ${API}/v1\nAPI-Key: ${key}\n\ncurl ${API}/v1/chat/completions \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"auto","messages":[{"role":"system","content":"Du bist ..."},{"role":"user","content":"Hallo!"}]}'\n\n// JavaScript (Server) mit dem OpenAI-SDK:\nconst client = new OpenAI({ baseURL: "${API}/v1", apiKey: process.env.OFFLOAD_KEY });`;
+}
+
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  try {
+    if (b.dataset.save) {
+      const inp = document.querySelector(`input[data-p="${b.dataset.save}"]`);
+      if (!inp.value.trim()) return;
+      b.disabled = true; b.textContent = "…";
+      await call("provider-keys", { method: "PUT", body: JSON.stringify({ provider: b.dataset.save, key: inp.value }) });
+      toast(T("okSaved", "Gespeichert und verschlüsselt ✓")); await load();
+    } else if (b.dataset.del) {
+      if (!confirm(T("confirmDel", "Diesen Anbieter-Key löschen?"))) return;
+      await call(`provider-keys/${b.dataset.del}`, { method: "DELETE" }); await load();
+    } else if (b.id === "create") {
+      const providers = [...document.querySelectorAll("#newProviders input:checked")].map((i) => i.value);
+      const all = document.querySelectorAll("#newProviders input").length;
+      const r = await call("access-keys", { method: "POST", body: JSON.stringify({ name: $("newName").value, docs: $("newDocs").value, providers: providers.length === all ? [] : providers }) });
+      $("newName").value = ""; $("newDocs").value = "";
+      await load();
+      $("secret").innerHTML = `<div class="secret"><b>${T("once", "Dein neuer Offload-Key – wird nur jetzt einmal angezeigt:")}</b><pre id="newKey">${esc(r.key)}</pre><button id="copy">${T("copy", "Kopieren")}</button></div>`;
+      renderSnippets(r.key);
+    } else if (b.id === "copy") {
+      await navigator.clipboard.writeText($("newKey").textContent); toast(T("copied", "Kopiert ✓"));
+    } else if (b.dataset.toggle) {
+      await call(`access-keys/${b.dataset.toggle}`, { method: "PATCH", body: JSON.stringify({ revoked: b.dataset.rev !== "true" }) }); await load();
+    } else if (b.dataset.delkey) {
+      if (!confirm(T("confirmDelKey", "Offload-Key endgültig löschen? Apps, die ihn nutzen, funktionieren dann nicht mehr."))) return;
+      await call(`access-keys/${b.dataset.delkey}`, { method: "DELETE" }); await load();
+    } else if (b.dataset.savedocs) {
+      await call(`access-keys/${b.dataset.savedocs}`, { method: "PATCH", body: JSON.stringify({ docs: document.querySelector(`textarea[data-docs="${b.dataset.savedocs}"]`).value }) });
+      toast(T("okSaved2", "Gespeichert ✓"));
+    } else if (b.id === "signin" || b.id === "signup") {
+      const creds = { email: $("email").value.trim(), password: $("pw").value };
+      const { data, error } = b.id === "signin" ? await sb.auth.signInWithPassword(creds) : await sb.auth.signUp(creds);
+      if (error) throw error;
+      if (b.id === "signup" && !data.session) toast(T("confirm", "Fast fertig: Bestätige die E-Mail in deinem Postfach und melde dich dann an."));
+    } else if (b.id === "logout") {
+      await sb.auth.signOut();
+    }
+  } catch (err) { toast("⚠️ " + err.message); await load().catch(() => {}); }
+});
+
+sb.auth.onAuthStateChange((_e, session) => {
+  $("auth").classList.toggle("hidden", !!session);
+  $("app").classList.toggle("hidden", !session);
+  $("logout").classList.toggle("hidden", !session);
+  if (session) load().catch((e) => toast("⚠️ " + e.message));
+});
+</script>
+</body>
+</html>

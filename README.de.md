@@ -58,6 +58,10 @@ Nicht genutzte Zeilen einfach weglassen. Claude Desktop neu starten und testen m
 In die Projekt-Anweisungen bzw. `CLAUDE.md`:
 > Nutze für große Dateien, Logs und Massen-Textaufgaben die Offload-Tools, statt die Inhalte selbst zu lesen.
 
+## ☁️ Offload Cloud (optional)
+
+Speichere deine eigenen Keys einmal verschlüsselt im [Offload-Cloud-Dashboard](https://ok6416411-source.github.io/offload-mcp/) und nutze dann **einen `ofk_…`-Key** auf allen Geräten, auch in eigenen Apps oder auf deiner Website (OpenAI-kompatibel). Rolle und Systemanweisung bestimmt deine App, Offload fügt nichts hinzu. Wichtig: Den Key nur serverseitig verwenden, nie im Browser-Code. → [Doku](cloud/README.md)
+
 ## So siehst du, was es bringt 💰
 
 Unter jeder ausgelagerten Aufgabe zeigt Claude dir die Ersparnis:

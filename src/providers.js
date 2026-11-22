@@ -1,7 +1,21 @@
 // Free-tier, OpenAI-compatible providers. Each one is enabled only if its API key env var is set.
 // Model names change often. Defaults are only a starting point: if a model disappears,
 // src/models.js discovers a replacement automatically. Pin one with OFFLOAD_<ID>_MODEL.
+export const CLOUD_URL = "https://hwxrfawfnyigtsheemol.supabase.co/functions/v1/offload-cloud/v1";
+export const DASHBOARD_URL = "https://ok6416411-source.github.io/offload-mcp/";
+
 export const PROVIDERS = [
+  {
+    // One ofk_… key from Offload Cloud = all your own provider keys, synced across devices.
+    id: "cloud",
+    name: "Offload Cloud",
+    baseUrl: process.env.OFFLOAD_CLOUD_URL || CLOUD_URL,
+    keyEnv: "OFFLOAD_CLOUD_KEY",
+    model: "auto",
+    signup: DASHBOARD_URL,
+    strengths: ["all-your-keys"],
+    noDiscovery: true,
+  },
   {
     id: "groq",
     name: "Groq",
@@ -63,7 +77,7 @@ export function activeProviders(env = process.env) {
   const list = PROVIDERS.filter((p) => env[p.keyEnv]).map((p) => ({
     ...p,
     apiKey: env[p.keyEnv],
-    pinned: Boolean(env[`OFFLOAD_${p.id.toUpperCase()}_MODEL`]),
+    pinned: Boolean(p.noDiscovery || env[`OFFLOAD_${p.id.toUpperCase()}_MODEL`]),
     model: env[`OFFLOAD_${p.id.toUpperCase()}_MODEL`] || p.model,
   }));
   if (order.length) list.sort((a, b) => rank(order, a.id) - rank(order, b.id));
