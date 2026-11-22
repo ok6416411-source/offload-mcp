@@ -1,5 +1,6 @@
 // Free-tier, OpenAI-compatible providers. Each one is enabled only if its API key env var is set.
-// Model names change often – override any of them with OFFLOAD_<ID>_MODEL.
+// Model names change often. Defaults are only a starting point: if a model disappears,
+// src/models.js discovers a replacement automatically. Pin one with OFFLOAD_<ID>_MODEL.
 export const PROVIDERS = [
   {
     id: "groq",
@@ -24,7 +25,7 @@ export const PROVIDERS = [
     name: "Google Gemini",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     keyEnv: "GEMINI_API_KEY",
-    model: "gemini-2.5-flash",
+    model: "gemini-3.8-flash",
     signup: "https://aistudio.google.com/apikey",
     strengths: ["long-context", "code"],
   },
@@ -62,6 +63,7 @@ export function activeProviders(env = process.env) {
   const list = PROVIDERS.filter((p) => env[p.keyEnv]).map((p) => ({
     ...p,
     apiKey: env[p.keyEnv],
+    pinned: Boolean(env[`OFFLOAD_${p.id.toUpperCase()}_MODEL`]),
     model: env[`OFFLOAD_${p.id.toUpperCase()}_MODEL`] || p.model,
   }));
   if (order.length) list.sort((a, b) => rank(order, a.id) - rank(order, b.id));

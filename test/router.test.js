@@ -36,3 +36,24 @@ test("setup keeps other MCP servers when adding offload", async () => {
   assert.equal(out.theme, "dark");
   assert.deepEqual(out.mcpServers.offload.env, { GEMINI_API_KEY: "k" });
 });
+
+test("discovers a new model when the configured one is gone", async () => {
+  process.env.OFFLOAD_HOME = (await import("node:os")).tmpdir() + "/offload-test-" + Date.now();
+  const fetch = async (url, opts) => {
+    if (url.endsWith("/models")) return { ok: true, json: async () => ({ data: [
+      { id: "whisper-large-v3" }, { id: "llama-4-maverick-17b-128e-instruct" }, { id: "llama-3.1-8b-instant" }, { id: "openai/gpt-oss-120b" } ] }) };
+    const model = JSON.parse(opts.body).model;
+    if (model === "llama-3.3-70b-versatile")
+      return { ok: false, status: 400, headers: new Headers(), text: async () => '{"error":{"message":"The model `llama-3.3-70b-versatile` has been decommissioned"}}' };
+    return ok("worked with " + model);
+  };
+  const r = await complete({ prompt: "x" }, { fetch, env: { GROQ_API_KEY: "a" } });
+  assert.match(r.text, /worked with/);
+  assert.notEqual(r.model, "llama-3.3-70b-versatile");
+  assert.ok(!/whisper|8b/.test(r.model));
+});
+
+test("openrouter only picks :free models", async () => {
+  const { pickModel } = await import("../src/models.js");
+  assert.equal(pickModel(["meta-llama/llama-3.3-70b-instruct", "qwen/qwen3-235b-a22b:free"], "openrouter"), "qwen/qwen3-235b-a22b:free");
+});

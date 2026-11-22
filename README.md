@@ -10,6 +10,7 @@
 - 📊 **`list_providers`** – what's configured.
 - 💰 **`savings_report`** – Claude tokens saved, per session and all-time.
 - 🔀 Automatic fallback: provider rate-limited? Next one takes over.
+- 🔄 Self-healing models: if a provider retires a model, offload-mcp finds a current free one automatically.
 - 📦 **Zero dependencies.** Node ≥ 18, that's it.
 - 🌍 Messages in your system language (English, German – more welcome).
 

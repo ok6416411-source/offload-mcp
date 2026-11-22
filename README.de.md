@@ -77,6 +77,9 @@ Frag Claude *„Wie viel hat mir offload gespart?“*, dann bekommst du einen ko
 - **list_providers**: Übersicht der Anbieter.
 - **savings_report**: Wie viele Claude-Tokens bisher gespart wurden.
 
+## Modelle aktualisieren sich selbst
+Wenn ein Anbieter ein Modell abschaltet oder umbenennt, sucht offload-mcp automatisch ein aktuelles Gratis-Modell beim selben Anbieter. Du musst nichts tun.
+
 ## Wichtig
 - Gratis-Modelle sind schwächer als Claude. Für Fleißarbeit nutzen, das Denken bleibt bei Claude.
 - Ausgelagerte Dateien gehen an den jeweiligen Anbieter. Keine Geheimnisse auslagern und die Datenschutzregeln der Anbieter beachten (manche Gratis-Angebote nutzen Daten zum Training).
