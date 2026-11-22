@@ -1,0 +1,12 @@
+{
+  "name": "offload-mcp",
+  "version": "0.2.0",
+  "description": "MCP server that lets Claude offload bulky work to free LLM APIs (Groq, Gemini, Cerebras, Mistral, NVIDIA, OpenRouter) – stretch your Claude limits.",
+  "type": "module",
+  "bin": { "offload-mcp": "src/index.js" },
+  "files": ["src"],
+  "scripts": { "start": "node src/index.js", "test": "node --test test/*.test.js" },
+  "engines": { "node": ">=18" },
+  "keywords": ["mcp", "claude", "claude-desktop", "model-context-protocol", "groq", "gemini", "nvidia", "llm", "free", "tokens"],
+  "license": "MIT"
+}
