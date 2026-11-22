@@ -9,6 +9,9 @@ const STRINGS = {
     saved: "Claude tokens saved",
     totalSaved: "Estimated input tokens kept out of Claude",
     truncated: "truncated",
+    footerThis: "this call", footerSession: "session", footerTotal: "total", tokens: "Claude tokens",
+    reportTitle: "Claude tokens saved by offload-mcp", since: "since",
+    reportNote: "Estimate: ~4 characters per token. $ value assumes Claude API pricing (OFFLOAD_USD_PER_MTOK) – on a subscription it means more room before you hit your limit.",
     star: "⭐ offload-mcp has saved you ~{n} Claude tokens so far. If it helps, a GitHub star keeps it going: {url}",
   },
   de: {
@@ -20,6 +23,9 @@ const STRINGS = {
     saved: "Claude-Tokens gespart",
     totalSaved: "Geschätzte Eingabe-Tokens, die Claude nicht lesen musste",
     truncated: "gekürzt",
+    footerThis: "dieser Aufruf", footerSession: "Sitzung", footerTotal: "gesamt", tokens: "Claude-Tokens",
+    reportTitle: "Durch offload-mcp gesparte Claude-Tokens", since: "seit",
+    reportNote: "Schätzung: ~4 Zeichen pro Token. Der $-Wert basiert auf Claude-API-Preisen (OFFLOAD_USD_PER_MTOK) – im Abo heißt das: mehr Luft bis zum Limit.",
     star: "⭐ offload-mcp hat dir bisher ~{n} Claude-Tokens gespart. Wenn es dir hilft, freut sich das Projekt über einen GitHub-Star: {url}",
   },
 };

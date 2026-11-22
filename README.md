@@ -7,10 +7,23 @@
 - 📄 **`offload_files`** – "summarize this 8 MB log" → the file goes to Gemini, Claude only sees the 20-line answer. *This is where most tokens are saved.*
 - ✍️ **`offload`** – drafts, translations, boilerplate, simple code.
 - 🔁 **`offload_batch`** – the same instruction over 50 items in parallel.
-- 📊 **`list_providers`** – what's configured, usage, tokens saved.
+- 📊 **`list_providers`** – what's configured.
+- 💰 **`savings_report`** – Claude tokens saved, per session and all-time.
 - 🔀 Automatic fallback: provider rate-limited? Next one takes over.
 - 📦 **Zero dependencies.** Node ≥ 18, that's it.
 - 🌍 Messages in your system language (English, German – more welcome).
+
+## See what it brings 💰
+
+Every offloaded task ends with a savings line, and Claude shows it to you:
+
+```
+Summary: 3 errors found in auth.log (lines 812, 1440, 2977) …
+— via gemini/gemini-2.5-flash
+💰 this call: ~11,723 · session: ~18,402 · total: ~240,118 Claude tokens (≈ $3.60)
+```
+
+Ask Claude *"how much has offload saved me?"* for a full report. The all-time counter is stored in `~/.offload-mcp/stats.json`.
 
 ## How it saves tokens
 

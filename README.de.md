@@ -58,11 +58,24 @@ Nicht genutzte Zeilen einfach weglassen. Claude Desktop neu starten und testen m
 In die Projekt-Anweisungen bzw. `CLAUDE.md`:
 > Nutze für große Dateien, Logs und Massen-Textaufgaben die Offload-Tools, statt die Inhalte selbst zu lesen.
 
+## So siehst du, was es bringt 💰
+
+Unter jeder ausgelagerten Aufgabe zeigt Claude dir die Ersparnis:
+
+```
+Zusammenfassung: 3 Fehler in auth.log gefunden (Zeilen 812, 1440, 2977) …
+— via gemini/gemini-2.5-flash
+💰 dieser Aufruf: ~11.723 · Sitzung: ~18.402 · gesamt: ~240.118 Claude-Tokens (≈ $3.60)
+```
+
+Frag Claude *„Wie viel hat mir offload gespart?“*, dann bekommst du einen kompletten Bericht. Der Gesamtzähler wird in `~/.offload-mcp/stats.json` gespeichert.
+
 ## Werkzeuge
 - **offload_files**: Große Dateien liest ein Gratis-Modell, Claude bekommt nur die Antwort. Spart am meisten.
 - **offload**: Entwürfe, Übersetzungen, Boilerplate.
 - **offload_batch**: Eine Anweisung auf viele Einträge gleichzeitig.
-- **list_providers**: Übersicht und gesparte Tokens.
+- **list_providers**: Übersicht der Anbieter.
+- **savings_report**: Wie viele Claude-Tokens bisher gespart wurden.
 
 ## Wichtig
 - Gratis-Modelle sind schwächer als Claude. Für Fleißarbeit nutzen, das Denken bleibt bei Claude.
