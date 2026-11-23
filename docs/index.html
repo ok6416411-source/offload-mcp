@@ -39,6 +39,13 @@ label.chk{display:inline-flex;gap:6px;align-items:center;margin:4px 12px 4px 0}l
     <h2 data-i18n="login">Anmelden oder registrieren</h2>
     <div class="row"><input id="email" type="email" placeholder="E-Mail"><input id="pw" type="password" placeholder="Passwort (min. 8 Zeichen)"></div>
     <div class="row" style="margin-top:10px"><button id="signin" data-i18n="signin">Anmelden</button><button id="signup" class="ghost" data-i18n="signup">Konto erstellen</button></div>
+    <p style="margin:12px 0 0;font-size:13px"><a href="#" id="forgot" style="color:var(--accent)" data-i18n="forgot">Passwort vergessen oder nie eins gehabt?</a></p>
+  </section>
+
+  <!-- Set new password (after clicking the reset link) -->
+  <section id="reset" class="card hidden">
+    <h2 data-i18n="resetT">Neues Passwort festlegen</h2>
+    <div class="row"><input id="newPw" type="password" placeholder="Neues Passwort (min. 8 Zeichen)"><button id="setPw" data-i18n="setPw">Speichern</button></div>
   </section>
 
   <div id="app" class="hidden">
@@ -88,7 +95,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 // --- i18n: German if browser is German, else English ---
 const de = (navigator.language || "en").toLowerCase().startsWith("de");
-const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model).",notConfirmed:"Email not confirmed yet – check your inbox.",badLogin:"Wrong email or password.",exists:"An account with this email already exists. Sign in with your password.",confirm:"Almost done: confirm the email in your inbox – only needed once.",chat:"💬 Open chat"};
+const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model).",notConfirmed:"Email not confirmed yet – check your inbox.",badLogin:"Wrong email or password.",exists:"An account with this email already exists. Sign in with your password.",confirm:"Almost done: confirm the email in your inbox – only needed once.",forgot:"Forgot your password or never had one?",resetT:"Set a new password",setPw:"Save",resetSent:"Check your inbox: we sent you a link to set a password.",needEmail:"Enter your email first.",pwSet:"Password saved ✓",pwShort:"At least 8 characters.",chat:"💬 Open chat"};
 const T = (k, deText) => de ? deText : (EN[k] ?? deText);
 if (!de) {
   document.documentElement.lang = "en";
@@ -185,13 +192,38 @@ document.addEventListener("click", async (e) => {
         throw new Error(T("exists", "Zu dieser E-Mail gibt es schon ein Konto. Melde dich mit deinem Passwort an."));
       }
       if (!data.session) toast(T("confirm", "Fast fertig: Bestätige die E-Mail in deinem Postfach – das ist nur einmal nötig."));
+    } else if (b.id === "setPw") {
+      const pw = $("newPw").value;
+      if (pw.length < 8) throw new Error(T("pwShort", "Mindestens 8 Zeichen."));
+      const { error } = await sb.auth.updateUser({ password: pw });
+      if (error) throw error;
+      recovering = false; $("reset").classList.add("hidden"); $("app").classList.remove("hidden");
+      history.replaceState(null, "", location.pathname);
+      toast(T("pwSet", "Passwort gespeichert ✓")); await load();
     } else if (b.id === "logout") {
       await sb.auth.signOut();
     }
   } catch (err) { toast("⚠️ " + err.message); await load().catch(() => {}); }
 });
 
-sb.auth.onAuthStateChange((_e, session) => {
+// "Forgot password": works for everyone with an account on this project – also people who
+// signed up in another app, or never had a password (magic link / Google).
+let recovering = /type=recovery/.test(location.hash);
+$("forgot").onclick = async (e) => {
+  e.preventDefault();
+  const email = $("email").value.trim();
+  if (!email) return toast(T("needEmail", "Gib zuerst deine E-Mail ein."));
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split("#")[0] });
+  toast(error ? "⚠️ " + error.message : T("resetSent", "Schau in dein Postfach: Du hast einen Link bekommen, um ein Passwort festzulegen."));
+};
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === "PASSWORD_RECOVERY") recovering = true;
+  if (session && recovering) {
+    $("auth").classList.add("hidden"); $("app").classList.add("hidden");
+    $("reset").classList.remove("hidden"); $("logout").classList.remove("hidden");
+    return;
+  }
   $("auth").classList.toggle("hidden", !!session);
   $("app").classList.toggle("hidden", !session);
   $("logout").classList.toggle("hidden", !session);
