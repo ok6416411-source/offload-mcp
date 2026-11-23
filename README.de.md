@@ -62,6 +62,8 @@ In die Projekt-Anweisungen bzw. `CLAUDE.md`:
 
 Speichere deine eigenen Keys einmal verschlüsselt im [Offload-Cloud-Dashboard](https://ok6416411-source.github.io/offload-mcp/) und nutze dann **einen `ofk_…`-Key** auf allen Geräten, auch in eigenen Apps oder auf deiner Website (OpenAI-kompatibel). Rolle und Systemanweisung bestimmt deine App, Offload fügt nichts hinzu. Wichtig: Den Key nur serverseitig verwenden, nie im Browser-Code. → [Doku](cloud/README.md)
 
+💬 **Web-Chat:** [offload.chat](https://ok6416411-source.github.io/offload-mcp/chat.html) – `ofk_…`-Key eingeben und mit deinen Gratis-Modellen chatten (der Key bleibt in deinem Browser).
+
 ## So siehst du, was es bringt 💰
 
 Unter jeder ausgelagerten Aufgabe zeigt Claude dir die Ersparnis:

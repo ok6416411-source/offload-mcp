@@ -30,6 +30,7 @@ label.chk{display:inline-flex;gap:6px;align-items:center;margin:4px 12px 4px 0}l
 <main>
   <div class="row" style="align-items:flex-end">
     <div><h1>☁️ Offload Cloud</h1><div class="muted" data-i18n="tag">Deine eigenen Gratis-API-Keys, verschlüsselt an einem Ort – nutzbar über eigene Offload-Keys.</div></div>
+    <a href="chat.html" class="ghost" style="padding:9px 16px;border:1px solid var(--line);border-radius:8px;color:var(--text);text-decoration:none" data-i18n="chat">💬 Chat öffnen</a>
     <button id="logout" class="ghost hidden" data-i18n="logout">Abmelden</button>
   </div>
 
@@ -87,7 +88,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 // --- i18n: German if browser is German, else English ---
 const de = (navigator.language || "en").toLowerCase().startsWith("de");
-const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model)."};
+const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model).",notConfirmed:"Email not confirmed yet – check your inbox.",badLogin:"Wrong email or password.",exists:"An account with this email already exists. Sign in with your password.",confirm:"Almost done: confirm the email in your inbox – only needed once.",chat:"💬 Open chat"};
 const T = (k, deText) => de ? deText : (EN[k] ?? deText);
 if (!de) {
   document.documentElement.lang = "en";
@@ -168,9 +169,22 @@ document.addEventListener("click", async (e) => {
       toast(T("okSaved2", "Gespeichert ✓"));
     } else if (b.id === "signin" || b.id === "signup") {
       const creds = { email: $("email").value.trim(), password: $("pw").value };
-      const { data, error } = b.id === "signin" ? await sb.auth.signInWithPassword(creds) : await sb.auth.signUp(creds);
+      if (b.id === "signin") {
+        const { error } = await sb.auth.signInWithPassword(creds);
+        if (error) throw new Error(/confirm/i.test(error.message) ? T("notConfirmed", "E-Mail noch nicht bestätigt – schau in dein Postfach.") : T("badLogin", "E-Mail oder Passwort falsch."));
+        return;
+      }
+      // Sign-up: an account that already exists (e.g. confirmed earlier, also via another app on this
+      // Supabase project) gets NO new confirmation mail – we just sign it in instead.
+      const tryLogin = await sb.auth.signInWithPassword(creds);
+      if (!tryLogin.error) return;
+      if (/confirm/i.test(tryLogin.error.message)) throw new Error(T("notConfirmed", "E-Mail noch nicht bestätigt – schau in dein Postfach."));
+      const { data, error } = await sb.auth.signUp({ ...creds, options: { emailRedirectTo: location.href.split("#")[0] } });
       if (error) throw error;
-      if (b.id === "signup" && !data.session) toast(T("confirm", "Fast fertig: Bestätige die E-Mail in deinem Postfach und melde dich dann an."));
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        throw new Error(T("exists", "Zu dieser E-Mail gibt es schon ein Konto. Melde dich mit deinem Passwort an."));
+      }
+      if (!data.session) toast(T("confirm", "Fast fertig: Bestätige die E-Mail in deinem Postfach – das ist nur einmal nötig."));
     } else if (b.id === "logout") {
       await sb.auth.signOut();
     }
