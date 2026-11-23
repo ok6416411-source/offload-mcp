@@ -31,8 +31,10 @@ const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 let aesKey: CryptoKey | null = null;
 async function getAesKey() {
   if (aesKey) return aesKey;
-  const secret = Deno.env.get("OFFLOAD_ENC_KEY");
-  if (!secret || secret.length < 32) throw new Error("Server not configured: OFFLOAD_ENC_KEY missing or shorter than 32 chars");
+  // Prefer a dedicated secret; fall back to the project's service-role key (always present, never public).
+  // NOTE: if the fallback is used and the service-role key is ever rotated, stored provider keys must be re-uploaded.
+  const secret = Deno.env.get("OFFLOAD_ENC_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!secret || secret.length < 32) throw new Error("Server not configured: no encryption secret");
   const raw = await crypto.subtle.digest("SHA-256", enc.encode(secret));
   aesKey = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
   return aesKey;
@@ -52,10 +54,10 @@ async function decrypt(data: string) {
 async function sha256(s: string) {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-function randomKey() {
+function randomKey(prefix = "ofk_") {
   const alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bytes = crypto.getRandomValues(new Uint8Array(40));
-  return "ofk_" + [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
+  return prefix + [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
 }
 
 // ---------- model discovery (same idea as the MCP: survive retired models) ----------
@@ -89,11 +91,13 @@ const isModelError = (status: number, body: string) =>
   [400, 403, 404, 410, 422].includes(status) && /model|not.?found|decommission|deprecat|no longer|not available|does not exist|unsupported/i.test(body);
 
 // ---------- auth helpers ----------
-async function userFromJwt(req: Request) {
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return null;
-  const { data } = await db.auth.getUser(token);
-  return data.user;
+// Accounts have no email: the account key (ofa_…) lives on the user's PC; only its hash is stored.
+async function accountFromReq(req: Request) {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
+  if (!token.startsWith("ofa_")) return null;
+  const { data } = await db.from("offload_accounts").select("id").eq("key_hash", await sha256(token)).maybeSingle();
+  if (data) db.from("offload_accounts").update({ last_seen_at: new Date().toISOString() }).eq("id", data.id).then(() => {});
+  return data?.id ?? null;
 }
 async function accessKeyFromReq(req: Request) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
@@ -158,7 +162,7 @@ async function chatCompletions(req: Request, ak: any) {
   return oaiError(`All providers failed → ${errors.join(" | ")}`, 502, "upstream_error");
 }
 
-// ---------- dashboard API (Supabase user JWT) ----------
+// ---------- dashboard / CLI API (account key ofa_…) ----------
 async function api(req: Request, path: string[], userId: string) {
   const [resource, id] = path;
   if (req.method === "GET" && resource === "state") {
@@ -244,9 +248,14 @@ Deno.serve(async (req) => {
       return oaiError("Not found", 404);
     }
     if (path[0] === "api") {
-      const user = await userFromJwt(req);
-      if (!user) return json({ error: "unauthorized" }, 401);
-      return await api(req, path.slice(1), user.id);
+      if (path[1] === "register" && req.method === "POST") {
+        const accountKey = randomKey("ofa_");
+        const { data, error } = await db.from("offload_accounts").insert({ key_hash: await sha256(accountKey) }).select("id").single();
+        return error ? json({ error: error.message }, 500) : json({ accountKey, id: data.id });
+      }
+      const userId = await accountFromReq(req);
+      if (!userId) return json({ error: "unauthorized" }, 401);
+      return await api(req, path.slice(1), userId);
     }
     return json({ service: "offload-cloud", docs: "https://github.com/ok6416411-source/offload-mcp/blob/main/cloud/README.md" });
   } catch (e) {

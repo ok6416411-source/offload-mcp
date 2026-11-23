@@ -60,7 +60,7 @@ In die Projekt-Anweisungen bzw. `CLAUDE.md`:
 
 ## ☁️ Offload Cloud (optional)
 
-Speichere deine eigenen Keys einmal verschlüsselt im [Offload-Cloud-Dashboard](https://ok6416411-source.github.io/offload-mcp/) und nutze dann **einen `ofk_…`-Key** auf allen Geräten, auch in eigenen Apps oder auf deiner Website (OpenAI-kompatibel). Rolle und Systemanweisung bestimmt deine App, Offload fügt nichts hinzu. Wichtig: Den Key nur serverseitig verwenden, nie im Browser-Code. → [Doku](cloud/README.md)
+Ein Befehl in cmd genügt: `npx -y github:ok6416411-source/offload-mcp cloud`. Ohne E-Mail und ohne Formular wird dein Konto erstellt, deine schon eingerichteten Keys werden verschlüsselt übertragen, und das [Dashboard](https://ok6416411-source.github.io/offload-mcp/) öffnet sich – angemeldet. Danach nutzt du **einen `ofk_…`-Key** auf allen Geräten, auch in eigenen Apps oder auf deiner Website (OpenAI-kompatibel). Rolle und Systemanweisung bestimmt deine App, Offload fügt nichts hinzu. Wichtig: Den Key nur serverseitig verwenden, nie im Browser-Code. → [Doku](cloud/README.md)
 
 💬 **Web-Chat:** [offload.chat](https://ok6416411-source.github.io/offload-mcp/chat.html) – `ofk_…`-Key eingeben und mit deinen Gratis-Modellen chatten (der Key bleibt in deinem Browser).
 

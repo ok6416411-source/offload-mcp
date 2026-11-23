@@ -16,7 +16,7 @@
 
 ## ☁️ Offload Cloud (optional)
 
-Save your own keys once in the [Offload Cloud dashboard](https://ok6416411-source.github.io/offload-mcp/) (encrypted), then use **one `ofk_…` key** on all your devices – and in your own apps or websites via an OpenAI-compatible API. Your app decides the role/system prompt; Offload adds nothing. → [Docs](cloud/README.md)
+Run `npx -y github:ok6416411-source/offload-mcp cloud` – no email, no sign-up form: it creates your account, uploads the keys you already configured (encrypted) and opens the [dashboard](https://ok6416411-source.github.io/offload-mcp/) signed in. Then use **one `ofk_…` key** on all your devices – and in your own apps or websites via an OpenAI-compatible API. Your app decides the role/system prompt; Offload adds nothing. → [Docs](cloud/README.md)
 
 💬 **Web chat:** [offload.chat](https://ok6416411-source.github.io/offload-mcp/chat.html) – paste your `ofk_…` key and chat with your free models (key stays in your browser).
 

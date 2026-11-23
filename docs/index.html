@@ -36,20 +36,14 @@ label.chk{display:inline-flex;gap:6px;align-items:center;margin:4px 12px 4px 0}l
 
   <!-- Login -->
   <section id="auth" class="card hidden">
-    <h2 data-i18n="login">Anmelden oder registrieren</h2>
-    <div class="row"><input id="email" type="email" placeholder="E-Mail"><input id="pw" type="password" placeholder="Passwort (min. 8 Zeichen)"></div>
-    <div class="row" style="margin-top:10px"><button id="signin" data-i18n="signin">Anmelden</button><button id="signup" class="ghost" data-i18n="signup">Konto erstellen</button></div>
-    <p style="margin:12px 0 0;font-size:13px"><a href="#" id="forgot" style="color:var(--accent)" data-i18n="forgot">Passwort vergessen oder nie eins gehabt?</a></p>
-    <div id="linkBox" class="hidden" style="margin-top:14px;padding:14px;border:1px dashed var(--accent);border-radius:10px">
-      <div style="font-size:14px;margin-bottom:8px" data-i18n="linkHelp">Du hast eine Mail bekommen. <b>Nicht auf den Link klicken</b> – sondern Rechtsklick → „Link-Adresse kopieren“ und hier einfügen:</div>
-      <div class="row"><input id="linkIn" placeholder="https://…supabase.co/auth/v1/verify?token=…"><button id="linkGo" data-i18n="linkGo">Weiter</button></div>
-    </div>
-  </section>
-
-  <!-- Set new password (after clicking the reset link) -->
-  <section id="reset" class="card hidden">
-    <h2 data-i18n="resetT">Neues Passwort festlegen</h2>
-    <div class="row"><input id="newPw" type="password" placeholder="Neues Passwort (min. 8 Zeichen)"><button id="setPw" data-i18n="setPw">Speichern</button></div>
+    <h2 data-i18n="login">Anmelden</h2>
+    <p data-i18n="loginD">Öffne die Eingabeaufforderung (Windows: <code>Win + R</code> → <code>cmd</code>) und führe aus:</p>
+    <pre>npx -y github:ok6416411-source/offload-mcp cloud</pre>
+    <p class="muted" data-i18n="loginD2">Das erstellt dein Konto ohne E-Mail, überträgt deine vorhandenen Keys verschlüsselt und öffnet diese Seite – angemeldet.</p>
+    <details style="margin-top:10px"><summary class="muted" style="cursor:pointer" data-i18n="other">Auf einem anderen Gerät? Konto-Schlüssel einfügen</summary>
+      <div class="row" style="margin-top:10px"><input id="accIn" type="password" placeholder="ofa_…"><button id="accGo" data-i18n="signin">Anmelden</button></div>
+      <p class="muted" style="font-size:13px" data-i18n="where">Den Konto-Schlüssel findest du auf deinem PC in <code>%USERPROFILE%\.offload-mcp\account.json</code>.</p>
+    </details>
   </section>
 
   <div id="app" class="hidden">
@@ -89,17 +83,17 @@ label.chk{display:inline-flex;gap:6px;align-items:center;margin:4px 12px 4px 0}l
 <div id="toast"></div>
 
 <script type="module">
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const SUPABASE_URL = "https://hwxrfawfnyigtsheemol.supabase.co";
-const SUPABASE_KEY = "sb_publishable_92avkPY-0VHyYGv6ZIpynw_9k8wWBbq";
-const API = `${SUPABASE_URL}/functions/v1/offload-cloud`;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const API = "https://hwxrfawfnyigtsheemol.supabase.co/functions/v1/offload-cloud";
+const store = { get(k){try{return localStorage.getItem(k)}catch{return null}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}, del(k){try{localStorage.removeItem(k)}catch{}} };
+// Account key arrives from the CLI in the URL fragment (never sent to a server), then is kept in this browser only.
+let account = null;
+{ const m = location.hash.match(/account=(ofa_[A-Za-z0-9]+)/); if (m) { store.set("offload_account", m[1]); history.replaceState(null, "", location.pathname); } account = store.get("offload_account"); }
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // --- i18n: German if browser is German, else English ---
 const de = (navigator.language || "en").toLowerCase().startsWith("de");
-const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model).",notConfirmed:"Email not confirmed yet – check your inbox.",badLogin:"Wrong email or password.",exists:"An account with this email already exists. Sign in with your password.",confirm:"Almost done: paste the link from the confirmation email here – only needed once.",forgot:"Forgot your password or never had one?",linkHelp:"We sent you an email. Don't click the link – right-click → “Copy link address” and paste it here:",linkGo:"Continue",badLink:"That doesn't look like the link from the email.",linkOld:"Link expired or already used – request a new one.",resetT:"Set a new password",setPw:"Save",resetSent:"Check your inbox: we sent you a link to set a password.",needEmail:"Enter your email first.",pwSet:"Password saved ✓",pwShort:"At least 8 characters.",chat:"💬 Open chat"};
+const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in",loginD:"Open a terminal (Windows: Win + R → cmd) and run:",loginD2:"This creates your account without email, uploads your existing keys encrypted and opens this page – signed in.",other:"On another device? Paste your account key",where:"You find the account key on your PC in %USERPROFILE%\\.offload-mcp\\account.json.",badAcc:"Invalid account key.",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model).",notConfirmed:"Email not confirmed yet – check your inbox.",badLogin:"Wrong email or password.",exists:"An account with this email already exists. Sign in with your password.",confirm:"Almost done: paste the link from the confirmation email here – only needed once.",forgot:"Forgot your password or never had one?",linkHelp:"We sent you an email. Don't click the link – right-click → “Copy link address” and paste it here:",linkGo:"Continue",badLink:"That doesn't look like the link from the email.",linkOld:"Link expired or already used – request a new one.",resetT:"Set a new password",setPw:"Save",resetSent:"Check your inbox: we sent you a link to set a password.",needEmail:"Enter your email first.",pwSet:"Password saved ✓",pwShort:"At least 8 characters.",chat:"💬 Open chat"};
 const T = (k, deText) => de ? deText : (EN[k] ?? deText);
 if (!de) {
   document.documentElement.lang = "en";
@@ -111,8 +105,8 @@ if (!de) {
 function toast(msg) { const t = $("toast"); t.textContent = msg; t.style.display = "block"; setTimeout(() => (t.style.display = "none"), 3000); }
 
 async function call(path, opts = {}) {
-  const { data: { session } } = await sb.auth.getSession();
-  const res = await fetch(`${API}/api/${path}`, { ...opts, headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` } });
+  const res = await fetch(`${API}/api/${path}`, { ...opts, headers: { "content-type": "application/json", authorization: `Bearer ${account}` } });
+  if (res.status === 401) { signOut(); throw new Error(T("badAcc", "Konto-Schlüssel ungültig.")); }
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || res.status);
   return data;
@@ -178,77 +172,24 @@ document.addEventListener("click", async (e) => {
     } else if (b.dataset.savedocs) {
       await call(`access-keys/${b.dataset.savedocs}`, { method: "PATCH", body: JSON.stringify({ docs: document.querySelector(`textarea[data-docs="${b.dataset.savedocs}"]`).value }) });
       toast(T("okSaved2", "Gespeichert ✓"));
-    } else if (b.id === "signin" || b.id === "signup") {
-      const creds = { email: $("email").value.trim(), password: $("pw").value };
-      if (b.id === "signin") {
-        const { error } = await sb.auth.signInWithPassword(creds);
-        if (error) throw new Error(/confirm/i.test(error.message) ? T("notConfirmed", "E-Mail noch nicht bestätigt – schau in dein Postfach.") : T("badLogin", "E-Mail oder Passwort falsch."));
-        return;
-      }
-      // Sign-up: an account that already exists (e.g. confirmed earlier, also via another app on this
-      // Supabase project) gets NO new confirmation mail – we just sign it in instead.
-      const tryLogin = await sb.auth.signInWithPassword(creds);
-      if (!tryLogin.error) return;
-      if (/confirm/i.test(tryLogin.error.message)) throw new Error(T("notConfirmed", "E-Mail noch nicht bestätigt – schau in dein Postfach."));
-      const { data, error } = await sb.auth.signUp({ ...creds, options: { emailRedirectTo: location.href.split("#")[0] } });
-      if (error) throw error;
-      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-        throw new Error(T("exists", "Zu dieser E-Mail gibt es schon ein Konto. Melde dich mit deinem Passwort an."));
-      }
-      if (!data.session) { $("linkBox").classList.remove("hidden"); toast(T("confirm", "Fast fertig: Kopiere den Link aus der Bestätigungsmail hier hinein – nur einmal nötig.")); }
-    } else if (b.id === "setPw") {
-      const pw = $("newPw").value;
-      if (pw.length < 8) throw new Error(T("pwShort", "Mindestens 8 Zeichen."));
-      const { error } = await sb.auth.updateUser({ password: pw });
-      if (error) throw error;
-      recovering = false; $("reset").classList.add("hidden"); $("app").classList.remove("hidden");
-      history.replaceState(null, "", location.pathname);
-      toast(T("pwSet", "Passwort gespeichert ✓")); await load();
+    } else if (b.id === "accGo") {
+      const k = $("accIn").value.trim();
+      if (!k.startsWith("ofa_")) throw new Error(T("badAcc", "Konto-Schlüssel ungültig."));
+      account = k; store.set("offload_account", k); show();
     } else if (b.id === "logout") {
-      await sb.auth.signOut();
+      signOut();
     }
   } catch (err) { toast("⚠️ " + err.message); await load().catch(() => {}); }
 });
 
-// "Forgot password": works for everyone with an account on this project – also people who
-// signed up in another app, or never had a password (magic link / Google).
-let recovering = /type=recovery/.test(location.hash);
-$("forgot").onclick = async (e) => {
-  e.preventDefault();
-  const email = $("email").value.trim();
-  if (!email) return toast(T("needEmail", "Gib zuerst deine E-Mail ein."));
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split("#")[0] });
-  if (error) return toast("⚠️ " + error.message);
-  $("linkBox").classList.remove("hidden"); $("linkIn").focus();
-};
-// Use the link from the email without opening it: its token works here regardless of where the
-// link would redirect (the project's Site URL may belong to another app).
-$("linkGo").onclick = async () => {
-  try {
-    const raw = $("linkIn").value.trim();
-    const u = new URL(raw);
-    const token_hash = u.searchParams.get("token") || u.searchParams.get("token_hash");
-    const type = u.searchParams.get("type") || "recovery";
-    if (!token_hash) throw new Error(T("badLink", "Das sieht nicht nach dem Link aus der Mail aus."));
-    if (type === "recovery") recovering = true;
-    const { error } = await sb.auth.verifyOtp({ token_hash, type });
-    if (error) { recovering = false; throw new Error(/expired|invalid/i.test(error.message) ? T("linkOld", "Link abgelaufen oder schon benutzt – fordere einen neuen an.") : error.message); }
-    $("linkBox").classList.add("hidden"); $("linkIn").value = "";
-  } catch (e) { toast("⚠️ " + (e instanceof TypeError ? T("badLink", "Das sieht nicht nach dem Link aus der Mail aus.") : e.message)); }
-};
-
-sb.auth.onAuthStateChange((event, session) => {
-  if (event === "PASSWORD_RECOVERY") recovering = true;
-  if (session && recovering) {
-    $("auth").classList.add("hidden"); $("app").classList.add("hidden");
-    $("reset").classList.remove("hidden"); $("logout").classList.remove("hidden");
-    return;
-  }
-  $("auth").classList.toggle("hidden", !!session);
-  $("app").classList.toggle("hidden", !session);
-  $("logout").classList.toggle("hidden", !session);
-  if (session) load().catch((e) => toast("⚠️ " + e.message));
-});
+function signOut() { store.del("offload_account"); account = null; show(); }
+function show() {
+  $("auth").classList.toggle("hidden", !!account);
+  $("app").classList.toggle("hidden", !account);
+  $("logout").classList.toggle("hidden", !account);
+  if (account) load().catch((e) => toast("⚠️ " + e.message));
+}
+show();
 </script>
 </body>
 </html>
