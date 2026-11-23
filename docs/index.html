@@ -40,6 +40,10 @@ label.chk{display:inline-flex;gap:6px;align-items:center;margin:4px 12px 4px 0}l
     <div class="row"><input id="email" type="email" placeholder="E-Mail"><input id="pw" type="password" placeholder="Passwort (min. 8 Zeichen)"></div>
     <div class="row" style="margin-top:10px"><button id="signin" data-i18n="signin">Anmelden</button><button id="signup" class="ghost" data-i18n="signup">Konto erstellen</button></div>
     <p style="margin:12px 0 0;font-size:13px"><a href="#" id="forgot" style="color:var(--accent)" data-i18n="forgot">Passwort vergessen oder nie eins gehabt?</a></p>
+    <div id="linkBox" class="hidden" style="margin-top:14px;padding:14px;border:1px dashed var(--accent);border-radius:10px">
+      <div style="font-size:14px;margin-bottom:8px" data-i18n="linkHelp">Du hast eine Mail bekommen. <b>Nicht auf den Link klicken</b> – sondern Rechtsklick → „Link-Adresse kopieren“ und hier einfügen:</div>
+      <div class="row"><input id="linkIn" placeholder="https://…supabase.co/auth/v1/verify?token=…"><button id="linkGo" data-i18n="linkGo">Weiter</button></div>
+    </div>
   </section>
 
   <!-- Set new password (after clicking the reset link) -->
@@ -95,7 +99,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 // --- i18n: German if browser is German, else English ---
 const de = (navigator.language || "en").toLowerCase().startsWith("de");
-const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model).",notConfirmed:"Email not confirmed yet – check your inbox.",badLogin:"Wrong email or password.",exists:"An account with this email already exists. Sign in with your password.",confirm:"Almost done: confirm the email in your inbox – only needed once.",forgot:"Forgot your password or never had one?",resetT:"Set a new password",setPw:"Save",resetSent:"Check your inbox: we sent you a link to set a password.",needEmail:"Enter your email first.",pwSet:"Password saved ✓",pwShort:"At least 8 characters.",chat:"💬 Open chat"};
+const EN = {tag:"Your own free API keys, encrypted in one place – usable through your own offload keys.",logout:"Sign out",login:"Sign in or register",signin:"Sign in",signup:"Create account",calls:"Requests via the cloud",tokens:"Tokens processed (estimated)",step1:"1 · Your provider keys",step1d:"Verified on save, encrypted with AES-256-GCM and never shown again. Only you can use them, via your offload keys.",step2:"2 · Create offload keys",step2d:"An offload key bundles your providers. Create one per device or app – you can revoke each one separately. Offload never dictates anything to your apps: role and system prompt are entirely up to your program.",create:"Create offload key",step3:"3 · Use it",mcp:"– in the offload-mcp config instead of individual keys:",own:"Own app / website",ownd:"– OpenAI-compatible. Use the key server-side only, never in browser code!",models:"model: auto (all providers with fallback), groq (Groq only) or groq:<model> (exact model).",notConfirmed:"Email not confirmed yet – check your inbox.",badLogin:"Wrong email or password.",exists:"An account with this email already exists. Sign in with your password.",confirm:"Almost done: paste the link from the confirmation email here – only needed once.",forgot:"Forgot your password or never had one?",linkHelp:"We sent you an email. Don't click the link – right-click → “Copy link address” and paste it here:",linkGo:"Continue",badLink:"That doesn't look like the link from the email.",linkOld:"Link expired or already used – request a new one.",resetT:"Set a new password",setPw:"Save",resetSent:"Check your inbox: we sent you a link to set a password.",needEmail:"Enter your email first.",pwSet:"Password saved ✓",pwShort:"At least 8 characters.",chat:"💬 Open chat"};
 const T = (k, deText) => de ? deText : (EN[k] ?? deText);
 if (!de) {
   document.documentElement.lang = "en";
@@ -191,7 +195,7 @@ document.addEventListener("click", async (e) => {
       if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
         throw new Error(T("exists", "Zu dieser E-Mail gibt es schon ein Konto. Melde dich mit deinem Passwort an."));
       }
-      if (!data.session) toast(T("confirm", "Fast fertig: Bestätige die E-Mail in deinem Postfach – das ist nur einmal nötig."));
+      if (!data.session) { $("linkBox").classList.remove("hidden"); toast(T("confirm", "Fast fertig: Kopiere den Link aus der Bestätigungsmail hier hinein – nur einmal nötig.")); }
     } else if (b.id === "setPw") {
       const pw = $("newPw").value;
       if (pw.length < 8) throw new Error(T("pwShort", "Mindestens 8 Zeichen."));
@@ -214,7 +218,23 @@ $("forgot").onclick = async (e) => {
   const email = $("email").value.trim();
   if (!email) return toast(T("needEmail", "Gib zuerst deine E-Mail ein."));
   const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split("#")[0] });
-  toast(error ? "⚠️ " + error.message : T("resetSent", "Schau in dein Postfach: Du hast einen Link bekommen, um ein Passwort festzulegen."));
+  if (error) return toast("⚠️ " + error.message);
+  $("linkBox").classList.remove("hidden"); $("linkIn").focus();
+};
+// Use the link from the email without opening it: its token works here regardless of where the
+// link would redirect (the project's Site URL may belong to another app).
+$("linkGo").onclick = async () => {
+  try {
+    const raw = $("linkIn").value.trim();
+    const u = new URL(raw);
+    const token_hash = u.searchParams.get("token") || u.searchParams.get("token_hash");
+    const type = u.searchParams.get("type") || "recovery";
+    if (!token_hash) throw new Error(T("badLink", "Das sieht nicht nach dem Link aus der Mail aus."));
+    if (type === "recovery") recovering = true;
+    const { error } = await sb.auth.verifyOtp({ token_hash, type });
+    if (error) { recovering = false; throw new Error(/expired|invalid/i.test(error.message) ? T("linkOld", "Link abgelaufen oder schon benutzt – fordere einen neuen an.") : error.message); }
+    $("linkBox").classList.add("hidden"); $("linkIn").value = "";
+  } catch (e) { toast("⚠️ " + (e instanceof TypeError ? T("badLink", "Das sieht nicht nach dem Link aus der Mail aus.") : e.message)); }
 };
 
 sb.auth.onAuthStateChange((event, session) => {
