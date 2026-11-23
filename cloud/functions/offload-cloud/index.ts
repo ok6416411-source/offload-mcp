@@ -152,7 +152,8 @@ async function chatCompletions(req: Request, ak: any) {
         return json(data);
       }
       const text = await upstream.text().catch(() => "");
-      if (attempt === 0 && !forcedModel && isModelError(upstream.status, text)) {
+      // Model retired, or this model is overloaded/rate-limited → try another model of the same provider once.
+      if (attempt === 0 && !forcedModel && (isModelError(upstream.status, text) || upstream.status === 503 || upstream.status === 429)) {
         try { model = await discoverModel(row.provider, apiKey, model); modelCache.set(cacheKey, model); continue; } catch { /* fall through */ }
       }
       errors.push(`${row.provider} (${model}): HTTP ${upstream.status} ${text.slice(0, 120)}`);

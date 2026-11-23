@@ -220,7 +220,12 @@ async function send() {
     b.innerHTML = md(out || "…") + (meta ? `<div class="meta">${meta}</div>` : "");
     history.push({ role: "assistant", content: out, meta }); save();
   } catch (e) {
-    b.innerHTML = `<span style="color:var(--err)">⚠️ ${e.message.replace(/</g, "&lt;")}</span>`;
+    const m = e.message;
+    const busyProv = /503|high demand|overloaded|unavailable/i.test(m), limited = /429|rate limit/i.test(m);
+    const friendly = busyProv ? L("Der Anbieter ist gerade überlastet. Wähl oben „Automatisch“ – dann springt offload zum nächsten Anbieter.", "The provider is overloaded right now. Pick “Automatic” above – offload then switches to the next provider.")
+      : limited ? L("Limit dieses Anbieters erreicht. Mit „Automatisch“ geht’s über die anderen weiter.", "This provider's limit is reached. With “Automatic” the others take over.")
+      : m;
+    b.innerHTML = `<span style="color:var(--err)">⚠️ ${friendly.replace(/</g, "&lt;")}</span>` + (friendly !== m ? `<details class="meta"><summary>Details</summary>${m.replace(/</g, "&lt;").slice(0, 400)}</details>` : "");
     history.pop(); save(); $("input").value = text;
   } finally { busy = false; $("send").disabled = false; $("input").focus(); }
 }
